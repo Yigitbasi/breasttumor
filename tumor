@@ -1,0 +1,58 @@
+veri <- read.csv("C:\\Users\\mefis\\Downloads\\data.csv")
+library(dplyr)
+library(caret)
+
+# Veriyi eğitim ve test olarak ayır
+set.seed(123)
+div <- createDataPartition(veri$Class, p = 0.7, list = FALSE)
+egitim <- veri[div, ]
+testing <- veri[-div, ]
+
+# Aykırı değerleri sadece eğitim verilerinde ortalama ile değiştir
+for (i in 2:10) {
+  outlier <- boxplot.stats(egitim[[i]])$out
+  egitim[egitim[[i]] %in% outlier, i] <- median(egitim[[i]])
+  
+}
+
+# Verileri ölçekle
+for (i in 2:10) {
+  egitim[, i] <- scale(egitim[, i])
+  testing[, i] <- scale(testing[, i])
+}
+
+# KNN modeli oluştur ve eğit
+knn_model <- train(
+  Class ~ .,
+  data = egitim,
+  method = "knn",
+  tuneGrid = data.frame(k = 3)
+)
+
+# Test verileri üzerinde tahmin yap
+tahmin <- predict(knn_model, testing)
+
+# Karmaşıklık matrisi ve doğruluk hesapla
+conf_matrix <- table(testing$Class, tahmin)
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat(accuracy)
+
+
+
+# Random Forest modeli oluştur ve eğit
+rf_model <- train(
+  Class ~ .,
+  data = egitim,
+  method = "rf",
+  tuneGrid = expand.grid(mtry = 3)
+)
+
+# Test verileri üzerinde tahmin yap
+tahmin <- predict(rf_model, testing)
+
+# Karmaşıklık matrisi ve doğruluk hesapla
+conf_matrix <- table(testing$Class, tahmin)
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat(accuracy)
+
+
